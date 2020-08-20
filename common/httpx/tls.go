@@ -11,6 +11,8 @@ type TlsData struct {
 	Organization     []string `json:"organization,omitempty"`
 	IssuerCommonName []string `json:"issuer_common_name,omitempty"`
 	IssuerOrg        []string `json:"issuer_organization,omitempty"`
+	SubjectOrg       []string `json:"subject_org,omitempty"`
+	SubjectOrgUnit   []string `json:"subject_org_unit,omitempty"`
 }
 
 func (h *HTTPX) TlsGrab(r *http.Response) *TlsData {
@@ -24,6 +26,8 @@ func (h *HTTPX) TlsGrab(r *http.Response) *TlsData {
 			tlsdata.IssuerOrg = append(tlsdata.IssuerOrg, certificate.Issuer.Organization...)
 			tlsdata.IssuerCommonName = append(tlsdata.IssuerCommonName, certificate.Issuer.CommonName)
 		}
+		tlsdata.SubjectOrg = r.TLS.PeerCertificates[0].Subject.Organization
+		tlsdata.SubjectOrgUnit = r.TLS.PeerCertificates[0].Subject.OrganizationalUnit
 		return &tlsdata
 	}
 	return nil
