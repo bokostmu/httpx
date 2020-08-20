@@ -68,6 +68,8 @@ func main() {
 	scanopts.OutputServerHeader = options.OutputServerHeader
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.responseInStdout
+	scanopts.BodyInStdout = options.bodyInStdout
+	scanopts.HeaderInStdout = options.headerInStdout
 	scanopts.OutputWebSocket = options.OutputWebSocket
 	scanopts.TlsProbe = options.TLSProbe
 	scanopts.RequestURI = options.RequestURI
@@ -251,6 +253,8 @@ type scanOptions struct {
 	OutputWebSocket        bool
 	OutputWithNoColor      bool
 	ResponseInStdout       bool
+	BodyInStdout           bool
+	HeaderInStdout         bool
 	TlsProbe               bool
 	RequestURI             string
 	OutputContentType      bool
@@ -266,7 +270,7 @@ retry:
 
 	req, err := hp.NewRequest(scanopts.Method, URL)
 	if err != nil {
-		return Result{URL: URL, err: err, ErrorString: err.Error()}
+		return Result{Domain: domain, URL: URL, err: err, ErrorString: err.Error()}
 	}
 
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
@@ -282,7 +286,7 @@ retry:
 			retried = true
 			goto retry
 		}
-		return Result{URL: URL, err: err, ErrorString: err.Error()}
+		return Result{Domain: domain, URL: URL, err: err, ErrorString: err.Error()}
 	}
 
 	var fullURL string
@@ -370,6 +374,16 @@ retry:
 		serverResponseRaw = resp.Raw
 	}
 
+	var responseBody = ""
+	if scanopts.BodyInStdout {
+		responseBody = string(resp.Data)
+	}
+
+	var responseHeader = ""
+	if scanopts.HeaderInStdout {
+		//responseHeader = string(resp.Headers)
+	}
+
 	// check for virtual host
 	isvhost := false
 	if scanopts.VHost {
@@ -409,6 +423,8 @@ retry:
 		VHost:         isvhost,
 		WebServer:     serverHeader,
 		Response:      serverResponseRaw,
+		Body:          responseBody,
+		Header:        responseHeader,
 		WebSocket:     isWebSocket,
 		TlsData:       resp.TlsData,
 	}
@@ -430,6 +446,8 @@ type Result struct {
 	WebServer     string         `json:"webserver"`
 	ErrorString   string         `json:"error,omitempty"`
 	Response      string         `json:"serverResponse,omitempty"`
+	Body          string         `json:"response_body,omitempty"`
+	Header        string         `json:"response_header,omitempty`
 	WebSocket     bool           `json:"websocket,omitempty"`
 	ContentType   string         `json:"content-type,omitempty"`
 	TlsData       *httpx.TlsData `json:"tls,omitempty"`
@@ -474,6 +492,8 @@ type Options struct {
 	OutputServerHeader        bool
 	OutputWebSocket           bool
 	responseInStdout          bool
+	bodyInStdout              bool
+	headerInStdout            bool
 	FollowHostRedirects       bool
 	TLSProbe                  bool
 	RequestURI                string
@@ -518,6 +538,8 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.OutputServerHeader, "web-server", false, "Extracts server header")
 	flag.BoolVar(&options.OutputWebSocket, "websocket", false, "Prints out if the server exposes a websocket")
 	flag.BoolVar(&options.responseInStdout, "response-in-json", false, "Server response directly in the tool output (-json only)")
+	flag.BoolVar(&options.bodyInStdout, "body-in-json", false, "Server response body directly in the tool output (-json only)")
+	flag.BoolVar(&options.headerInStdout, "header-in-json", false, "Server response header directly in the tool output (-json only)")
 	flag.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains")
 	flag.StringVar(&options.RequestURI, "path", "", "Request path/file (example '/api')")
 	flag.BoolVar(&options.OutputContentType, "content-type", false, "Extracts content-type")
