@@ -97,9 +97,9 @@ func main() {
 			defer f.Close()
 		}
 		for r := range output {
-			if r.err != nil {
-				continue
-			}
+			// if r.err != nil {
+			// 	continue
+			// }
 
 			// apply matchers and filters
 			if len(options.filterStatusCode) > 0 && slice.IntSliceContains(options.filterStatusCode, r.StatusCode) {
@@ -183,10 +183,16 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 		}
 
 		for port := range customport.Ports {
+			thisProtocol := protocol
+			if port == 80 {
+				thisProtocol = "http"
+			}
 			wg.Add()
+
 			go func(port int) {
 				defer wg.Done()
-				r := analyze(hp, protocol, target, port, &scanopts)
+				// If the port is 80 we should first check for http protocol
+				r := analyze(hp, thisProtocol, target, port, &scanopts)
 				output <- r
 				if scanopts.TlsProbe && r.TlsData != nil {
 					scanopts.TlsProbe = false
@@ -237,7 +243,7 @@ type scanOptions struct {
 	VHost                  bool
 	OutputTitle            bool
 	OutputStatusCode       bool
-    OutputLocation         bool
+	OutputLocation         bool
 	OutputContentLength    bool
 	StoreResponse          bool
 	StoreResponseDirectory string
@@ -260,7 +266,7 @@ retry:
 
 	req, err := hp.NewRequest(scanopts.Method, URL)
 	if err != nil {
-		return Result{URL: URL, err: err}
+		return Result{URL: URL, err: err, ErrorString: err.Error()}
 	}
 
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
@@ -276,7 +282,7 @@ retry:
 			retried = true
 			goto retry
 		}
-		return Result{URL: URL, err: err}
+		return Result{URL: URL, err: err, ErrorString: err.Error()}
 	}
 
 	var fullURL string
@@ -390,7 +396,10 @@ retry:
 	}
 
 	return Result{
+		Domain:        domain,
 		URL:           fullURL,
+		RedirectURL:   resp.RedirectURL,
+		RedirectHost:  resp.RedirectHost,
 		ContentLength: resp.ContentLength,
 		StatusCode:    resp.StatusCode,
 		Location:      resp.GetHeaderPart("Location", ";"),
@@ -407,7 +416,10 @@ retry:
 
 // Result of a scan
 type Result struct {
+	Domain        string `json:"domain"`
 	URL           string `json:"url"`
+	RedirectURL   string `json:"redirect_url"`
+	RedirectHost  string `json:"redirect_host"`
 	ContentLength int    `json:"content-length"`
 	StatusCode    int    `json:"status-code"`
 	Location      string `json:"location"`
@@ -416,6 +428,7 @@ type Result struct {
 	err           error
 	VHost         bool           `json:"vhost"`
 	WebServer     string         `json:"webserver"`
+	ErrorString   string         `json:"error,omitempty"`
 	Response      string         `json:"serverResponse,omitempty"`
 	WebSocket     bool           `json:"websocket,omitempty"`
 	ContentType   string         `json:"content-type,omitempty"`

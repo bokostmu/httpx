@@ -13,6 +13,8 @@ type Response struct {
 	Raw           string
 	Words         int
 	Lines         int
+	RedirectURL   string
+	RedirectHost  string
 	TlsData       *TlsData
 }
 

@@ -134,6 +134,12 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	// number of lines
 	resp.Lines = len(strings.Split(respbodystr, "\n"))
 
+	// extract the redirect URL
+	resp.RedirectURL = httpresp.Request.URL.String()
+
+	//extract the redirect Host
+	resp.RedirectHost = httpresp.Request.URL.Host
+
 	// extracts TLS data if any
 	resp.TlsData = h.TlsGrab(httpresp)
 

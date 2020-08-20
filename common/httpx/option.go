@@ -12,10 +12,10 @@ type Options struct {
 	// RetryMax is the maximum number of retries
 	RetryMax int
 
-	CustomHeaders    map[string]string
-	FollowRedirects  bool
+	CustomHeaders       map[string]string
+	FollowRedirects     bool
 	FollowHostRedirects bool
-	DefaultUserAgent string
+	DefaultUserAgent    string
 
 	HttpProxy  string
 	SocksProxy string
