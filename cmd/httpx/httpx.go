@@ -261,8 +261,8 @@ type scanOptions struct {
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts *scanOptions) Result {
-	retried := false
-retry:
+	//retried := false
+	//retry:
 	URL := fmt.Sprintf("%s://%s%s", protocol, domain, scanopts.RequestURI)
 	if port > 0 {
 		URL = fmt.Sprintf("%s:%d", URL, port)
@@ -277,15 +277,16 @@ retry:
 
 	resp, err := hp.Do(req)
 	if err != nil {
-		if !retried {
-			if protocol == "https" {
-				protocol = "http"
-			} else {
-				protocol = "https"
-			}
-			retried = true
-			goto retry
-		}
+		// Comment this out, as we want to have http on port 80 and if not always https
+		// if !retried {
+		// 	if protocol == "https" {
+		// 		protocol = "http"
+		// 	} else {
+		// 		protocol = "https"
+		// 	}
+		// 	retried = true
+		// 	goto retry
+		// }
 		return Result{Domain: domain, URL: URL, err: err, ErrorString: err.Error()}
 	}
 
