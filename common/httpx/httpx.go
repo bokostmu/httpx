@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -42,9 +43,20 @@ func New(options *Options) (*HTTPX, error) {
 		return http.ErrUseLastResponse // Tell the http client to not follow redirect
 	}
 
+	// if httpx.Options.FollowRedirects {
+	// 	// Follow redirects
+	// 	redirectFunc = nil
+	// }
+
 	if httpx.Options.FollowRedirects {
-		// Follow redirects
-		redirectFunc = nil
+		// Follow redirects, but replace/remove port in new request (if http redirects to https)
+		redirectFunc = func(redirectedRequest *http.Request, previousRequest []*http.Request) error {
+			redirectedRequest.URL.Host = strings.Split(redirectedRequest.URL.Host, ":")[0]
+			if len(previousRequest) >= 10 {
+				return errors.New("stopped after 10 redirects")
+			}
+			return nil
+		}
 	}
 
 	if httpx.Options.FollowHostRedirects {
@@ -55,6 +67,9 @@ func New(options *Options) (*HTTPX, error) {
 			var oldHost = previousRequest[0].URL.Host
 			if newHost != oldHost {
 				return http.ErrUseLastResponse // Tell the http client to not follow redirect
+			}
+			if len(previousRequest) >= 10 {
+				return errors.New("stopped after 10 redirects")
 			}
 			return nil
 
