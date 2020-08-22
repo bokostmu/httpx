@@ -56,7 +56,7 @@ func main() {
 
 	var scanopts scanOptions
 	scanopts.Method = options.Method
-	protocol := "https"
+	protocol := options.StartProtocol
 	scanopts.VHost = options.VHost
 	scanopts.OutputTitle = options.ExtractTitle
 	scanopts.OutputStatusCode = options.StatusCode
@@ -507,6 +507,7 @@ type Options struct {
 	filterStatusCode          []int
 	OutputFilterContentLength string
 	filterContentLength       []int
+	StartProtocol             string
 }
 
 // ParseOptions parses the command line options for application
@@ -548,6 +549,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.OutputMatchStatusCode, "ml", "", "Match content length")
 	flag.StringVar(&options.OutputFilterStatusCode, "fc", "", "Filter status code")
 	flag.StringVar(&options.OutputFilterContentLength, "fl", "", "Filter content length")
+	flag.StringVar(&options.StartProtocol, "start-protocol", "https", "The protocol to request first")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
