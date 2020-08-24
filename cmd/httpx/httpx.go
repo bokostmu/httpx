@@ -70,6 +70,8 @@ func main() {
 	scanopts.ResponseInStdout = options.responseInStdout
 	scanopts.BodyInStdout = options.bodyInStdout
 	scanopts.HeaderInStdout = options.headerInStdout
+	scanopts.ErrorsInStdout = options.errorsInStdout
+	scanopts.DontRetry = options.dontRetryProtocol
 	scanopts.OutputWebSocket = options.OutputWebSocket
 	scanopts.TlsProbe = options.TLSProbe
 	scanopts.RequestURI = options.RequestURI
@@ -99,9 +101,10 @@ func main() {
 			defer f.Close()
 		}
 		for r := range output {
-			// if r.err != nil {
-			// 	continue
-			// }
+			// If ErrorsinStdout is not set and we encountered an error skip to not include it in the output
+			if !scanopts.ErrorsInStdout && r.err != nil {
+				continue
+			}
 
 			// apply matchers and filters
 			if len(options.filterStatusCode) > 0 && slice.IntSliceContains(options.filterStatusCode, r.StatusCode) {
@@ -254,15 +257,17 @@ type scanOptions struct {
 	OutputWithNoColor      bool
 	ResponseInStdout       bool
 	BodyInStdout           bool
+	ErrorsInStdout         bool
 	HeaderInStdout         bool
+	DontRetry              bool
 	TlsProbe               bool
 	RequestURI             string
 	OutputContentType      bool
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts *scanOptions) Result {
-	//retried := false
-	//retry:
+	retried := false
+retry:
 	URL := fmt.Sprintf("%s://%s%s", protocol, domain, scanopts.RequestURI)
 	if port > 0 {
 		URL = fmt.Sprintf("%s:%d", URL, port)
@@ -277,16 +282,15 @@ func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts
 
 	resp, err := hp.Do(req)
 	if err != nil {
-		// Comment this out, as we want to have http on port 80 and if not always https
-		// if !retried {
-		// 	if protocol == "https" {
-		// 		protocol = "http"
-		// 	} else {
-		// 		protocol = "https"
-		// 	}
-		// 	retried = true
-		// 	goto retry
-		// }
+		if !scanopts.DontRetry && !retried {
+			if protocol == "https" {
+				protocol = "http"
+			} else {
+				protocol = "https"
+			}
+			retried = true
+			goto retry
+		}
 		return Result{Domain: domain, URL: URL, err: err, ErrorString: err.Error()}
 	}
 
@@ -382,6 +386,7 @@ func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts
 
 	var responseHeader = ""
 	if scanopts.HeaderInStdout {
+		//Does not work right now
 		//responseHeader = string(resp.Headers)
 	}
 
@@ -495,6 +500,8 @@ type Options struct {
 	responseInStdout          bool
 	bodyInStdout              bool
 	headerInStdout            bool
+	errorsInStdout            bool
+	dontRetryProtocol         bool
 	FollowHostRedirects       bool
 	TLSProbe                  bool
 	RequestURI                string
@@ -541,7 +548,8 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.OutputWebSocket, "websocket", false, "Prints out if the server exposes a websocket")
 	flag.BoolVar(&options.responseInStdout, "response-in-json", false, "Server response directly in the tool output (-json only)")
 	flag.BoolVar(&options.bodyInStdout, "body-in-json", false, "Server response body directly in the tool output (-json only)")
-	flag.BoolVar(&options.headerInStdout, "header-in-json", false, "Server response header directly in the tool output (-json only)")
+	flag.BoolVar(&options.errorsInStdout, "errors-in-json", false, "If a request fails, the error message is included in the tool output (-json only)")
+	flag.BoolVar(&options.dontRetryProtocol, "dont-retry-protocol", false, "If set, if https/http connection fails, no retry with other protocol is attempted")
 	flag.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains")
 	flag.StringVar(&options.RequestURI, "path", "", "Request path/file (example '/api')")
 	flag.BoolVar(&options.OutputContentType, "content-type", false, "Extracts content-type")
