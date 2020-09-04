@@ -11,6 +11,14 @@
 [![Docker Images](https://img.shields.io/docker/pulls/projectdiscovery/httpx.svg)](https://hub.docker.com/r/projectdiscovery/httpx)
 [![Chat on Discord](https://img.shields.io/discord/695645237418131507.svg?logo=discord)](https://discord.gg/KECAGdH)
 
+This is a tiny fork of httpx with some added options, a little bug fix and more output in json. 
+
+New Options:body-in-json, errors-in-json (includes all domains also the ones that failed in json with error messages for them), start-protocol (to define if we want to start with http or https) and dont-retry-protocol (to stop the default behavior of retrying with http/https).
+
+Bugfixes: If follow-redirects is set, the port is removed in the redirect (e.g. we set port 80 and follow-redirect flag, than https redirect target is now connected to on port 443). If -follow-host-redirects is set, we stop after 10 redirects (as it is default when the flag is not set), before httpx could hang in a redirect loop.
+
+New fields in json output: body and errors, if flags are set. Additionally always redirect url and redirect host, subject org and subject org unit for certificate of the website (in organization field all orgs of the cert chain are listed, so we do not know if thats the org of the website's certificate or the issuer) and domain (which contains the domain that was given as input to httpx).
+
 httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers using [retryablehttp](https://github.com/projectdiscovery/retryablehttp-go) library, it is designed to maintain the result reliability with increased threads.
 
 # Resources
